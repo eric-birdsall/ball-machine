@@ -101,6 +101,14 @@ function closest(s, px, py) {
   return { inside: true, nx: 1, ny: 0, d: dr };
 }
 
+// Is the ball touching this (static) shape?
+function overlaps(s, b) {
+  if (s.kind === 'spin') return Math.hypot(b.x - s.cx, b.y - s.cy) < s.R + BALL_R;
+  const c = closest(s, b.x, b.y);
+  if (c.inside) return true;
+  return Math.hypot(b.x - c.x, b.y - c.y) < BALL_R + (s.r || 0);
+}
+
 function touch(sim, part) {
   if (part.pi === undefined) return;
   if (sim.firstTouch[part.pi] === undefined) sim.firstTouch[part.pi] = sim.clock;
@@ -228,7 +236,10 @@ function substep(sim, h) {
     b.y += z.vy * h;
     b.vx = z.vx;
     b.vy = 0;
-    if (sim.carry.t <= 0 || b.y < 60 || b.x < BALL_R + 4 || b.x > WORLD.W - BALL_R - 4) {
+    // It also pops if it bumps into something (after a moment to lift clear of
+    // whatever the ball was resting on).
+    const bumped = z.time - sim.carry.t > 0.3 && sim.shapes.some((sh) => overlaps(sh, b));
+    if (bumped || sim.carry.t <= 0 || b.y < 60 || b.x < BALL_R + 4 || b.x > WORLD.W - BALL_R - 4) {
       sim.carry = null;
       sim.events.push({ type: 'pop', x: b.x, y: b.y - 70, pi: z.pi });
     }

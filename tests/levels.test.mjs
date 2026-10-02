@@ -17,7 +17,7 @@ test('the original 25 levels keep their keys (saved stars depend on them)', () =
 });
 
 // Pieces that exist in the engine but don't have levels yet (arriving in the next batch).
-const PENDING = ['blower', 'cloud', 'balloon', 'spinner'];
+const PENDING = [];
 
 test('every piece type appears in some level', () => {
   const used = new Set(LEVELS.flatMap((l) => l.tray.map((t) => t.type)));
