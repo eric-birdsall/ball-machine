@@ -7,8 +7,12 @@ pre-readers can play.
 
 ## What's in it
 
-- **Levels in worlds of 10, all unlocked from the start.** Finished levels get
-  a star. Each world has its own sky. The game is growing toward 100 levels.
+- **100 levels in 10 worlds of 10, all unlocked from the start.** Finished
+  levels get a star. Each world has its own sky.
+  - Worlds 1–2 teach the first ten pieces.
+  - Worlds 3–7 each introduce two new pieces.
+  - Worlds 8–10 mix everything into longer machines, often with a spare piece
+    in the tray that isn't needed.
 - **20 kinds of piece:**
   - ramp, trampoline, fan, conveyor, bumper, magnet, cannon, funnel, slide, portal
   - plank, brick block, jelly cube, boxing glove, elbow pipe, escalator, blower,
@@ -61,8 +65,8 @@ The tests run every level headlessly and check that:
 
 ## Level design tools
 
-The first 20 levels and the last 5 are hand-made. The rest are built by a
-generator from short recipes.
+Levels 1–20 and 96–100 are hand-made. Levels 21–95 are built by a generator
+from short recipes.
 
 **Generated levels.** `tests/recipes.mjs` lists, for each level, which pieces
 the ball meets and in what order. The generator (`tests/gen.mjs`) follows the
