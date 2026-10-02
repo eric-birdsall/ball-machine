@@ -1,6 +1,6 @@
 // A tiny purpose-built physics sim: one ball against static shapes.
 // Pure module (no DOM) so the level tests can run it in Node.
-import { pieceShapes, TRAMP, FAN, BUMPER, MAGNET, CANNON, PORTAL } from './pieces.js';
+import { pieceShapes, TRAMP, FAN, BUMPER, MAGNET, CANNON, PORTAL, JELLY, GLOVE, BLOWER, CLOUD } from './pieces.js';
 
 export const WORLD = { W: 1600, H: 1080, FLOOR: 1040 };
 export const BALL_R = 34;
@@ -46,19 +46,26 @@ export function levelZones(level) {
 export function createSim(level, pieces) {
   const shapes = levelShapes(level);
   const zones = levelZones(level);
-  for (const p of pieces) {
+  pieces.forEach((p, pi) => {
     const s = pieceShapes(p);
+    // Tag each part with its piece so we can tell which pieces the ball used.
+    for (const part of [...s.shapes, ...s.zones]) part.pi = pi;
     shapes.push(...s.shapes);
     zones.push(...s.zones);
-  }
+  });
   return {
     level,
     shapes,
     zones,
     portals: zones.filter((z) => z.kind === 'portal'), // paired in order: 0<->1, 2<->3
     portalLock: -1, // portal the ball just came out of; ignored until it leaves
-    hold: null, // { zone, t } while a cannon is holding the ball
+    hold: null, // { zone, t } while a cannon or pipe is holding the ball
     cannonCool: 0,
+    carry: null, // { zone, t } while a balloon is carrying the ball
+    clock: 0, // sim time advanced per substep (drives spinners)
+    firstTouch: [], // per placed piece: time the ball first/last used it
+    lastTouch: [],
+    trail: [], // recent positions, to notice a ball that is going nowhere
     ball: { x: level.ball.x, y: level.ball.y, vx: 0, vy: 0, rot: 0, hidden: false },
     t: 0,
     inT: 0,
@@ -66,7 +73,7 @@ export function createSim(level, pieces) {
     groundT: 0,
     boings: 0,
     result: null, // 'win' | 'miss'
-    events: [], // { type: 'hit'|'boing'|'bump'|'load'|'boom'|'warp', ... } drained by the game for sounds
+    events: [], // { type: 'hit'|'boing'|'bump'|'load'|'boom'|'warp'|..., ... } drained by the game for sounds
   };
 }
 
@@ -94,7 +101,51 @@ function closest(s, px, py) {
   return { inside: true, nx: 1, ny: 0, d: dr };
 }
 
+function touch(sim, part) {
+  if (part.pi === undefined) return;
+  if (sim.firstTouch[part.pi] === undefined) sim.firstTouch[part.pi] = sim.clock;
+  sim.lastTouch[part.pi] = sim.clock;
+}
+
+// A pinwheel: two bars turning about a centre. Collide against each bar as a
+// moving surface, so the ball is batted along.
+function collideSpinner(sim, s) {
+  const b = sim.ball;
+  for (let k = 0; k < 2; k++) {
+    const a = s.w * sim.clock + (k * Math.PI) / 2;
+    const dx = Math.cos(a) * s.R;
+    const dy = Math.sin(a) * s.R;
+    const c = closest({ kind: 'seg', ax: s.cx - dx, ay: s.cy - dy, bx: s.cx + dx, by: s.cy + dy }, b.x, b.y);
+    const ox = b.x - c.x;
+    const oy = b.y - c.y;
+    const R = BALL_R + s.r;
+    const d2 = ox * ox + oy * oy;
+    if (d2 >= R * R) continue;
+    const d = Math.sqrt(d2) || 1e-6;
+    const nx = ox / d;
+    const ny = oy / d;
+    b.x += nx * (R - d);
+    b.y += ny * (R - d);
+    // velocity of the bar at the contact point
+    const sx = -s.w * (c.y - s.cy);
+    const sy = s.w * (c.x - s.cx);
+    const rvx = b.vx - sx;
+    const rvy = b.vy - sy;
+    const vn = rvx * nx + rvy * ny;
+    touch(sim, s);
+    if (vn >= 0) continue;
+    const tx = -ny;
+    const ty = nx;
+    const vt = rvx * tx + rvy * ty;
+    const nvn = -vn * 0.35;
+    b.vx = nx * nvn + tx * vt + sx;
+    b.vy = ny * nvn + ty * vt + sy;
+    if (-vn > 250) sim.events.push({ type: 'hit', v: -vn, mat: 'spin' });
+  }
+}
+
 function collide(sim, s, h) {
+  if (s.kind === 'spin') return collideSpinner(sim, s);
   const b = sim.ball;
   const c = closest(s, b.x, b.y);
   let nx, ny, pen;
@@ -115,6 +166,7 @@ function collide(sim, s, h) {
   }
   b.x += nx * pen;
   b.y += ny * pen;
+  touch(sim, s);
 
   const tx = -ny;
   const ty = nx;
@@ -131,6 +183,9 @@ function collide(sim, s, h) {
     } else if (s.mat === 'bumper') {
       nvn = Math.max(-vn * 0.9, BUMPER.kick);
       sim.events.push({ type: 'bump', x: s.ax, y: s.ay });
+    } else if (s.mat === 'jelly') {
+      nvn = Math.max(-vn * 0.85, JELLY.bounce);
+      sim.events.push({ type: 'wobble', x: s.x + s.w / 2, y: s.y + s.h / 2 });
     } else {
       nvn = -vn * RESTITUTION;
       if (nvn < 60) nvn = 0;
@@ -138,7 +193,10 @@ function collide(sim, s, h) {
     }
   }
   if (s.mat === 'belt') {
-    vt += (s.speed * tx - vt) * Math.min(1, 14 * h);
+    // Drag the ball along the belt's own direction (flat conveyors and sloped escalators).
+    const len = Math.hypot(s.bx - s.ax, s.by - s.ay) || 1;
+    const along = ((s.bx - s.ax) * tx + (s.by - s.ay) * ty) / len;
+    vt += (s.speed * along - vt) * Math.min(1, 14 * h);
   } else {
     vt *= 1 - 0.25 * h; // rolling resistance
   }
@@ -148,8 +206,9 @@ function collide(sim, s, h) {
 
 function substep(sim, h) {
   const b = sim.ball;
+  sim.clock += h;
   if (sim.hold) {
-    // Inside a cannon: wait, then fire from the muzzle.
+    // Inside a cannon or pipe: wait, then come out of the muzzle.
     const z = sim.hold.zone;
     sim.hold.t -= h;
     Object.assign(b, { x: z.x, y: z.y, vx: 0, vy: 0 });
@@ -157,7 +216,21 @@ function substep(sim, h) {
       Object.assign(b, { x: z.mx, y: z.my, vx: z.vx, vy: z.vy, hidden: false });
       sim.hold = null;
       sim.cannonCool = 0.5;
-      sim.events.push({ type: 'boom', x: z.mx, y: z.my });
+      sim.events.push({ type: z.sub === 'pipe' ? 'pipeOut' : 'boom', x: z.mx, y: z.my });
+    }
+    return;
+  }
+  if (sim.carry) {
+    // Hanging from a balloon: drift up, then it pops and lets go.
+    const z = sim.carry.zone;
+    sim.carry.t -= h;
+    b.x += z.vx * h;
+    b.y += z.vy * h;
+    b.vx = z.vx;
+    b.vy = 0;
+    if (sim.carry.t <= 0 || b.y < 60 || b.x < BALL_R + 4 || b.x > WORLD.W - BALL_R - 4) {
+      sim.carry = null;
+      sim.events.push({ type: 'pop', x: b.x, y: b.y - 70, pi: z.pi });
     }
     return;
   }
@@ -168,6 +241,7 @@ function substep(sim, h) {
       if (b.x > z.x0 && b.x < z.x1 && b.y > z.y0 - BALL_R * 0.5 && b.y < z.y1 + BALL_R * 0.5) {
         const k = 1 - Math.min(1, Math.abs(b.x - z.fx) / (FAN.reach + 80));
         b.vx += z.dir * FAN.accel * (0.35 + 0.65 * k) * h;
+        touch(sim, z);
       }
     } else if (z.kind === 'magnet') {
       const dx = z.x - b.x;
@@ -178,12 +252,46 @@ function substep(sim, h) {
       if (d < z.range && Math.abs(dx) > 1) {
         const a = MAGNET.pull * (1 - d / z.range);
         b.vx += Math.sign(dx) * a * h;
+        if (a > 400) touch(sim, z);
       }
     } else if (z.kind === 'cannon') {
       if (sim.cannonCool <= 0 && Math.hypot(b.x - z.x, b.y - z.y) < z.r) {
-        sim.hold = { zone: z, t: CANNON.hold };
+        sim.hold = { zone: z, t: z.hold ?? CANNON.hold };
         b.hidden = true;
+        touch(sim, z);
         sim.events.push({ type: 'load', x: z.x, y: z.y });
+        return;
+      }
+    } else if (z.kind === 'punch') {
+      if (!(z.cool > sim.clock) && b.x > z.x0 - BALL_R && b.x < z.x1 + BALL_R && b.y > z.y0 && b.y < z.y1) {
+        b.vx = z.dir * GLOVE.vx;
+        b.vy = GLOVE.vy;
+        z.cool = sim.clock + 0.4;
+        touch(sim, z);
+        sim.events.push({ type: 'punch', x: z.x, y: z.y, pi: z.pi });
+      }
+    } else if (z.kind === 'updraft') {
+      if (b.x > z.x0 && b.x < z.x1 && b.y > z.y0 && b.y < z.y1 + BALL_R) {
+        const k = Math.min(1, Math.max(0, (z.y1 - b.y) / BLOWER.reach));
+        b.vy -= BLOWER.accel * (1 - 0.6 * k) * h;
+        touch(sim, z);
+      }
+    } else if (z.kind === 'cloud') {
+      const ex = (b.x - z.x) / z.rx;
+      const ey = (b.y - z.y) / z.ry;
+      if (ex * ex + ey * ey < 1) {
+        // Soft and floaty: the ball loses its speed and sinks slowly.
+        const k = Math.max(0, 1 - CLOUD.drag * h);
+        b.vx *= k;
+        b.vy *= k;
+        touch(sim, z);
+      }
+    } else if (z.kind === 'carry') {
+      if (!z.used && Math.hypot(b.x - z.x, b.y - z.y) < z.r) {
+        z.used = true; // one ride per balloon
+        sim.carry = { zone: z, t: z.time };
+        touch(sim, z);
+        sim.events.push({ type: 'grab', x: z.x, y: z.y, pi: z.pi });
         return;
       }
     }
@@ -215,6 +323,7 @@ function teleport(sim) {
     b.x = o.x;
     b.y = o.y;
     sim.portalLock = i ^ 1;
+    touch(sim, p);
     sim.events.push({ type: 'warp', x: p.x, y: p.y, tx: o.x, ty: o.y });
     return;
   }
@@ -237,6 +346,23 @@ export function stepSim(sim, dt) {
     sim.result = 'win';
     return;
   }
+  // Going nowhere: if the ball has stayed inside a small area for 4 seconds
+  // (hovering, rattling in a corner), call it a miss rather than make kids wait.
+  if (Math.floor(sim.t * 2) !== Math.floor((sim.t - dt) * 2)) {
+    sim.trail.push(b.x, b.y);
+    if (sim.trail.length > 16) sim.trail.splice(0, 2);
+    if (sim.trail.length === 16) {
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (let i = 0; i < 16; i += 2) {
+        x0 = Math.min(x0, sim.trail[i]);
+        x1 = Math.max(x1, sim.trail[i]);
+        y0 = Math.min(y0, sim.trail[i + 1]);
+        y1 = Math.max(y1, sim.trail[i + 1]);
+      }
+      if (x1 - x0 < 150 && y1 - y0 < 150) sim.result = 'miss';
+    }
+  }
+  if (sim.result) return;
   if (Math.hypot(b.vx, b.vy) < 25 && !sim.hold) sim.stillT += dt;
   else sim.stillT = 0;
   // No bucket sits on bare ground in reach of a rolling ball, so a ball

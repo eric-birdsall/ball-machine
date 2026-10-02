@@ -1,7 +1,8 @@
 // Canvas drawing: everything is drawn with shapes, no image files.
 import {
   RAMP, TRAMP, FAN, CONV, BUMPER, MAGNET, CANNON, SLIDE, PORTAL,
-  rampEnds, pieceBounds, slidePoints, funnelSegs, cannonGeom,
+  PLANK, BLOCK, JELLY, GLOVE, PIPE, ESC, BLOWER, CLOUD, BALLOON, SPINNER,
+  rampEnds, pieceBounds, slidePoints, funnelSegs, cannonGeom, escalatorEnds,
 } from './pieces.js';
 import { WORLD, BALL_R, BUCKET } from './physics.js';
 
@@ -20,10 +21,11 @@ export const UI = {
   go: { x: 1760, y: 955, r: 100 },
   replay: { x: 740, y: 660, r: 95 },
   next: { x: 1060, y: 660, r: 115 },
-  levelBtn: (i) => ({ x: 155 + i * 330, y: 500, w: 290, h: 290 }),
-  pagePrev: { x: 80, y: 645, r: 58 },
-  pageNext: { x: 1840, y: 645, r: 58 },
-  levelsPerPage: 5,
+  // Level picker: one world per page, 10 levels in two rows of five.
+  levelBtn: (i) => ({ x: 275 + (i % 5) * 280, y: 300 + Math.floor(i / 5) * 285, w: 250, h: 250 }),
+  pagePrev: { x: 135, y: 568, r: 58 },
+  pageNext: { x: 1785, y: 568, r: 58 },
+  levelsPerPage: 10,
 };
 
 const C = {
@@ -67,15 +69,30 @@ const C = {
   slide: '#9b5de5',
   slideLight: '#c9a7ff',
   portals: ['#8a4dff', '#ff9f1c'],
+  plank: '#8fd16a',
+  plankDark: '#5fa53c',
+  jelly: '#7be0c3',
+  jellyDark: '#3fb596',
+  glove: '#ff5a4d',
+  pipeBody: '#35c46f',
+  esc: '#6c7bd9',
+  blower: '#ffa94d',
+  balloon: '#ff6fae',
+  spinner: ['#ff5e7e', '#ffd23c', '#48b0ff', '#34c759'],
 };
 
-// One sky theme per world (5 levels each).
+// One sky theme per world (10 levels each).
 export const THEMES = [
-  { top: '#6ec3f4', bottom: '#d9f2ff', hills: '#a6dd8f', sun: '#ffd84a' },
-  { top: '#7fd6c8', bottom: '#f4ffe0', hills: '#9fd67a', sun: '#ffe066' },
-  { top: '#ff9a8b', bottom: '#ffe29f', hills: '#e8b27a', sun: '#ffb347' },
-  { top: '#1c2a5a', bottom: '#4a5aa0', hills: '#34506a', moon: true },
-  { top: '#b89cff', bottom: '#ffd6f0', hills: '#f2a6cf', sun: '#fff0a0' },
+  { top: '#6ec3f4', bottom: '#d9f2ff', hills: '#a6dd8f', sun: '#ffd84a' }, // sunny day
+  { top: '#7fd6c8', bottom: '#f4ffe0', hills: '#9fd67a', sun: '#ffe066' }, // meadow
+  { top: '#ff9a8b', bottom: '#ffe29f', hills: '#e8b27a', sun: '#ffb347' }, // sunset
+  { top: '#1c2a5a', bottom: '#4a5aa0', hills: '#34506a', moon: true }, // night
+  { top: '#b89cff', bottom: '#ffd6f0', hills: '#f2a6cf', sun: '#fff0a0' }, // candy
+  { top: '#9fd8ff', bottom: '#f4fbff', hills: '#dfeaf5', sun: '#fff3b0' }, // snow
+  { top: '#ffc76b', bottom: '#ffeec2', hills: '#e0a55c', sun: '#ff8a3c' }, // desert
+  { top: '#2bb3c0', bottom: '#c9f5ee', hills: '#5fc7a8', sun: '#fff59e' }, // lagoon
+  { top: '#e8794a', bottom: '#ffd9a8', hills: '#c76a3a', sun: '#ffe08a' }, // autumn
+  { top: '#2a1a5e', bottom: '#8a4fbf', hills: '#4a2f7a', moon: true }, // space
 ];
 
 const FONT = "'SF Pro Rounded', ui-rounded, 'Arial Rounded MT Bold', 'Nunito', system-ui, sans-serif";
@@ -661,6 +678,7 @@ export function drawPiece(ctx, p, t, opts = {}) {
       break;
     }
   }
+  drawNewPiece(ctx, p, t, { running, effects });
   if (opts.fixed) {
     // bolt: this piece is part of the level and can't be moved
     circle(ctx, p.x, p.y, 11);
@@ -673,6 +691,249 @@ export function drawPiece(ctx, p, t, opts = {}) {
     ctx.stroke();
   }
   ctx.restore();
+}
+
+// The second set of pieces (plank .. spinner).
+function drawNewPiece(ctx, p, t, { running, effects }) {
+  const d = p.dir;
+  const sq = p.squash || 0;
+  switch (p.type) {
+    case 'plank':
+      drawPlank(ctx, p.x - PLANK.len / 2, p.y, p.x + PLANK.len / 2, p.y, PLANK.r + 7, C.plank, C.plankDark);
+      break;
+    case 'block': {
+      const s = BLOCK.size / 2;
+      drawBlock(ctx, p.x - s, p.y - s, BLOCK.size, BLOCK.size);
+      break;
+    }
+    case 'jelly': {
+      const s = JELLY.size / 2;
+      ctx.save();
+      ctx.translate(p.x, p.y + s);
+      ctx.scale(1 + sq * 0.14, 1 - sq * 0.14);
+      rr(ctx, -s, -JELLY.size, JELLY.size, JELLY.size, 24);
+      fillStroke(ctx, C.jelly);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      rr(ctx, -s + 14, -JELLY.size + 12, 30, 16, 8);
+      ctx.fill();
+      // sleepy face
+      ctx.fillStyle = C.ink;
+      circle(ctx, -18, -s - 4, 6);
+      ctx.fill();
+      circle(ctx, 18, -s - 4, 6);
+      ctx.fill();
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = C.ink;
+      ctx.beginPath();
+      ctx.arc(0, -s + 8, 12, Math.PI * 0.15, Math.PI * 0.85);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case 'glove': {
+      const s = GLOVE.size / 2;
+      // spring + glove pop out on a punch
+      const out = 6 + sq * 34;
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 9;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + d * (s + out - 20), p.y);
+      ctx.stroke();
+      rr(ctx, p.x - s, p.y - s, GLOVE.size, GLOVE.size, 18);
+      fillStroke(ctx, '#ffd23c');
+      ctx.fillStyle = C.ink;
+      ctx.beginPath();
+      ctx.moveTo(p.x + d * 22, p.y);
+      ctx.lineTo(p.x - d * 8, p.y - 18);
+      ctx.lineTo(p.x - d * 8, p.y + 18);
+      ctx.fill();
+      // the glove
+      ctx.save();
+      ctx.translate(p.x + d * (s + out), p.y);
+      ctx.scale(d, 1);
+      rr(ctx, -22, -32, 54, 64, 26);
+      fillStroke(ctx, C.glove);
+      rr(ctx, -30, -24, 16, 48, 6);
+      fillStroke(ctx, '#ffffff', C.ink, 5);
+      circle(ctx, 4, -34, 13);
+      fillStroke(ctx, C.glove, C.ink, 5);
+      ctx.restore();
+      break;
+    }
+    case 'pipe': {
+      const s = PIPE.size / 2;
+      // body
+      rr(ctx, p.x - s + 8, p.y - s + 8, PIPE.size - 16, PIPE.size - 16, 16);
+      fillStroke(ctx, C.pipeBody);
+      // top mouth
+      rr(ctx, p.x - s, p.y - s - 12, PIPE.size, 30, 10);
+      fillStroke(ctx, C.pipeBody);
+      ctx.fillStyle = C.ink;
+      rr(ctx, p.x - s + 14, p.y - s - 6, PIPE.size - 28, 12, 6);
+      ctx.fill();
+      // side mouth
+      rr(ctx, p.x + d * s - (d > 0 ? 10 : 20), p.y - 32, 30, 88, 10);
+      fillStroke(ctx, C.pipeBody);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fillRect(p.x - s + 20, p.y - s + 22, 12, PIPE.size - 44);
+      // arrow: down then out
+      ctx.fillStyle = C.ink;
+      ctx.beginPath();
+      ctx.moveTo(p.x + d * 22, p.y + 12);
+      ctx.lineTo(p.x - d * 2, p.y - 6);
+      ctx.lineTo(p.x - d * 2, p.y + 30);
+      ctx.fill();
+      break;
+    }
+    case 'escalator': {
+      const [ax, ay, bx, by] = escalatorEnds(p);
+      const len = Math.hypot(bx - ax, by - ay);
+      const r = ESC.r;
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.rotate(Math.atan2(by - ay, bx - ax));
+      rr(ctx, -r, -r, len + 2 * r, 2 * r, r);
+      fillStroke(ctx, C.esc);
+      ctx.save();
+      rr(ctx, 0, -r + 5, len, 2 * r - 10, 6);
+      ctx.clip();
+      ctx.strokeStyle = '#ffffff';
+      ctx.globalAlpha = 0.85;
+      ctx.lineWidth = 5;
+      const off = (t * (running ? ESC.speed * 0.5 : 60)) % 40;
+      for (let x = -40; x < len + 40; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x + off - 6, -9);
+        ctx.lineTo(x + off + 6, 0);
+        ctx.lineTo(x + off - 6, 9);
+        ctx.stroke();
+      }
+      ctx.restore();
+      for (const wx of [0, len]) {
+        circle(ctx, wx, 0, r - 3);
+        fillStroke(ctx, C.wheel, C.ink, 4);
+      }
+      ctx.restore();
+      break;
+    }
+    case 'blower': {
+      const s = BLOWER.size / 2;
+      if (effects) {
+        ctx.save();
+        ctx.globalAlpha = running ? 0.55 : 0.28;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 4; i++) {
+          const xx = p.x - BLOWER.band / 2 + 22 + i * ((BLOWER.band - 44) / 3);
+          const off = (t * (running ? 420 : 90) + i * 137) % BLOWER.reach;
+          const y0 = p.y - s - off;
+          ctx.beginPath();
+          ctx.moveTo(xx, y0);
+          ctx.quadraticCurveTo(xx - 8, y0 - 30, xx, y0 - 60);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      rr(ctx, p.x - s, p.y - s + 10, BLOWER.size, BLOWER.size - 10, 20);
+      fillStroke(ctx, C.blower);
+      rr(ctx, p.x - s - 6, p.y - s, BLOWER.size + 12, 26, 10);
+      fillStroke(ctx, '#ffd9a8');
+      ctx.fillStyle = C.ink;
+      for (let i = -1; i <= 1; i++) ctx.fillRect(p.x + i * 26 - 8, p.y - s + 8, 16, 9);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - 4);
+      ctx.lineTo(p.x - 20, p.y + 24);
+      ctx.lineTo(p.x + 20, p.y + 24);
+      ctx.fill();
+      break;
+    }
+    case 'cloud': {
+      ctx.save();
+      ctx.globalAlpha *= 0.92;
+      const bob = Math.sin(t * 2 + p.x) * 3;
+      ctx.beginPath();
+      ctx.ellipse(p.x - 55, p.y + 14 + bob, 62, 48, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x + 5, p.y - 18 + bob, 70, 56, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x + 62, p.y + 14 + bob, 58, 46, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x, p.y + 28 + bob, 80, 40, 0, 0, Math.PI * 2);
+      ctx.lineWidth = 12;
+      ctx.strokeStyle = C.ink;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      // sleepy eyes
+      ctx.lineWidth = 5;
+      ctx.strokeStyle = C.ink;
+      for (const ex of [-24, 24]) {
+        ctx.beginPath();
+        ctx.arc(p.x + ex, p.y + 4 + bob, 10, Math.PI * 0.1, Math.PI * 0.9);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
+    case 'balloon': {
+      if (p.popped) break;
+      drawBalloon(ctx, p.x, p.y, d, t);
+      break;
+    }
+    case 'spinner': {
+      // stand
+      ctx.fillStyle = C.ink;
+      circle(ctx, p.x, p.y, 16);
+      ctx.fill();
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.spin ?? (effects ? t * 0.6 * d : 0));
+      for (let k = 0; k < 4; k++) {
+        ctx.rotate(Math.PI / 2);
+        rr(ctx, 6, -SPINNER.r - 5, SPINNER.R - 6, 2 * SPINNER.r + 10, SPINNER.r + 5);
+        fillStroke(ctx, C.spinner[k], C.ink, 5);
+      }
+      ctx.restore();
+      circle(ctx, p.x, p.y, 13);
+      fillStroke(ctx, '#ffffff', C.ink, 5);
+      // little arrow showing which way it turns
+      ctx.strokeStyle = C.ink;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 7, d > 0 ? -2.4 : -0.7, d > 0 ? 0.6 : 2.3 - Math.PI * 2, d < 0);
+      ctx.stroke();
+      break;
+    }
+  }
+}
+
+export function drawBalloon(ctx, x, y, d, t) {
+  const sway = Math.sin(t * 2.5 + x) * 4;
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(x, y + BALLOON.r * 1.15);
+  ctx.quadraticCurveTo(x + sway, y + BALLOON.r * 1.15 + 20, x, y + BALLOON.r * 1.15 + 40);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x, y, BALLOON.r, BALLOON.r * 1.15, 0, 0, Math.PI * 2);
+  fillStroke(ctx, C.balloon);
+  ctx.beginPath();
+  ctx.moveTo(x - 9, y + BALLOON.r * 1.15 - 2);
+  ctx.lineTo(x + 9, y + BALLOON.r * 1.15 - 2);
+  ctx.lineTo(x, y + BALLOON.r * 1.15 + 12);
+  ctx.closePath();
+  fillStroke(ctx, C.balloon, C.ink, 4);
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.beginPath();
+  ctx.ellipse(x - 18, y - 22, 12, 18, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  // arrow: which way it drifts
+  ctx.fillStyle = C.ink;
+  ctx.beginPath();
+  ctx.moveTo(x + d * 24, y - 12);
+  ctx.lineTo(x + d * 2, y - 14);
+  ctx.lineTo(x + d * 14, y + 10);
+  ctx.fill();
 }
 
 function zigzag(ctx, x, y0, y1) {
@@ -768,6 +1029,8 @@ export function drawTray(ctx, game, t, ext) {
 const ICON_SCALE = {
   ramp: 0.72, tramp: 0.85, fan: 0.85, conveyor: 0.72, bumper: 1,
   magnet: 1, cannon: 0.8, funnel: 0.85, slide: 0.55, portal: 0.85,
+  plank: 0.75, block: 1, jelly: 0.95, glove: 0.9, pipe: 0.85,
+  escalator: 0.68, blower: 0.9, cloud: 0.8, balloon: 0.8, spinner: 0.6,
 };
 
 export function trayIcon(type, cx, cy, k = 1) {
@@ -950,27 +1213,31 @@ export function drawLevelSelect(ctx, game, t, ext) {
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `900 118px ${FONT}`;
+  ctx.font = `900 104px ${FONT}`;
   ctx.lineJoin = 'round';
-  ctx.lineWidth = 22;
+  ctx.lineWidth = 20;
   ctx.strokeStyle = C.ink;
-  const ty = 230 + Math.sin(t * 2) * 6;
-  ctx.strokeText('Ball Machine', 820, ty);
-  const tg = ctx.createLinearGradient(0, ty - 60, 0, ty + 60);
+  const ty = 150 + Math.sin(t * 2) * 5;
+  ctx.strokeText('Ball Machine', 860, ty);
+  const tg = ctx.createLinearGradient(0, ty - 55, 0, ty + 55);
   tg.addColorStop(0, '#ffe36e');
   tg.addColorStop(1, '#ff9f1c');
   ctx.fillStyle = tg;
-  ctx.fillText('Ball Machine', 820, ty);
+  ctx.fillText('Ball Machine', 860, ty);
   ctx.restore();
 
   // bouncing mascots
-  drawBucket(ctx, { x: 1620, y: 420 }, 'near', t);
-  drawBall(ctx, 1380, 280 - Math.abs(Math.sin(t * 3)) * 120, t * 3, 0, 200);
+  ctx.save();
+  ctx.translate(1500, 250);
+  ctx.scale(0.8, 0.8);
+  drawBucket(ctx, { x: 0, y: 0 }, 'near', t);
+  drawBall(ctx, -230, -130 - Math.abs(Math.sin(t * 3)) * 90, t * 3, 0, 200);
+  ctx.restore();
 
   // row of world dots
   const pages = Math.ceil(game.levelCount / UI.levelsPerPage);
   for (let k = 0; k < pages; k++) {
-    circle(ctx, 960 + (k - (pages - 1) / 2) * 60, 960, k === page ? 18 : 12);
+    circle(ctx, 960 + (k - (pages - 1) / 2) * 56, 925, k === page ? 18 : 12);
     fillStroke(ctx, k === page ? '#ffd23c' : '#ffffff', C.ink, 5);
   }
 
@@ -978,36 +1245,36 @@ export function drawLevelSelect(ctx, game, t, ext) {
     const li = page * UI.levelsPerPage + i;
     if (li >= game.levelCount) break;
     const r = UI.levelBtn(i);
-    const done = game.progress.done.includes(li);
+    const done = game.progress.done.includes(game.levels[li].key);
     const bob = Math.sin(t * 3 + i) * 6;
     ctx.save();
     ctx.translate(0, bob);
-    rr(ctx, r.x, r.y + 10, r.w, r.h, 44);
+    rr(ctx, r.x, r.y + 9, r.w, r.h, 40);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.fill();
-    rr(ctx, r.x, r.y, r.w, r.h, 44);
-    fillStroke(ctx, ['#ffc93c', '#ff7eb0', '#6fd3ff', '#8be07a', '#c9a7ff'][i], C.ink, 8);
+    rr(ctx, r.x, r.y, r.w, r.h, 40);
+    fillStroke(ctx, ['#ffc93c', '#ff7eb0', '#6fd3ff', '#8be07a', '#c9a7ff'][(i + Math.floor(i / 5) * 2) % 5], C.ink, 8);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = `900 120px ${FONT}`;
-    ctx.lineWidth = 16;
+    ctx.font = `900 104px ${FONT}`;
+    ctx.lineWidth = 15;
     ctx.lineJoin = 'round';
     ctx.strokeStyle = C.ink;
-    ctx.strokeText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 30);
+    ctx.strokeText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 28);
     ctx.fillStyle = '#fff';
-    ctx.fillText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 30);
+    ctx.fillText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 28);
     // piece icons for this level
     const types = [...new Set(game.levels[li].tray.map((s) => s.type))];
-    const sc = [0.5, 0.36, 0.27, 0.22][types.length - 1] ?? 0.2;
+    const sc = [0.44, 0.32, 0.24, 0.19][types.length - 1] ?? 0.18;
     const gap = r.w / (types.length + 0.2);
     types.forEach((type, k) => {
       ctx.save();
-      ctx.translate(r.x + r.w / 2 + (k - (types.length - 1) / 2) * gap, r.y + r.h - 58);
+      ctx.translate(r.x + r.w / 2 + (k - (types.length - 1) / 2) * gap, r.y + r.h - 50);
       ctx.scale(sc, sc);
       drawPiece(ctx, { type, x: 0, y: 0, dir: 1 }, t, { icon: true });
       ctx.restore();
     });
-    if (done) drawStar(ctx, r.x + r.w - 20, r.y + 20, 40);
+    if (done) drawStar(ctx, r.x + r.w - 18, r.y + 18, 36);
     ctx.restore();
   }
 
@@ -1061,6 +1328,7 @@ export function drawLevel(ctx, game, t, ext) {
 
   const ball = game.ballView;
   // Ball first so that once it drops in, the bucket's front hides it.
+  if (ball.carriedBy) drawBalloon(ctx, ball.x, ball.y - 100, ball.carriedBy.dir, t);
   if (ball.visible) drawBall(ctx, ball.x, ball.y, ball.rot, ball.vx, ball.vy, ball.squash);
   drawBucket(ctx, L.bucket, game.bucketMood, t);
 

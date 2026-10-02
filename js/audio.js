@@ -161,6 +161,27 @@ export function sfx(name, strength = 1) {
       tone(1800, t + 0.15, 0.3, { type: 'triangle', vol: 0.1, to: 600 });
       break;
     }
+    case 'wobble': {
+      const o = tone(240, t, 0.3, { vol: 0.35 });
+      o.frequency.linearRampToValueAtTime(420, t + 0.07);
+      o.frequency.linearRampToValueAtTime(260, t + 0.18);
+      break;
+    }
+    case 'punch':
+      noise(t, 0.12, { vol: 0.45, freq: 900, to: 300, q: 0.8 });
+      tone(180, t, 0.16, { vol: 0.45, to: 70 });
+      break;
+    case 'pipeOut':
+      tone(260, t, 0.2, { type: 'square', vol: 0.1, to: 620 });
+      tone(620, t + 0.08, 0.14, { type: 'triangle', vol: 0.18, to: 880 });
+      break;
+    case 'grab':
+      tone(520, t, 0.25, { type: 'triangle', vol: 0.2, to: 1040 });
+      break;
+    case 'balloonPop':
+      noise(t, 0.09, { vol: 0.5, freq: 2400, q: 0.6 });
+      tone(900, t, 0.08, { type: 'square', vol: 0.12, to: 300 });
+      break;
     case 'unlock':
       [784, 988, 1175, 1568].forEach((f, i) => tone(f, t + i * 0.07, 0.2, { type: 'triangle', vol: 0.2 }));
       break;

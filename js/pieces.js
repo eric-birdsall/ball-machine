@@ -5,7 +5,12 @@
 //   conveyor: dir 1 carries to the right
 //   cannon:   dir 1 fires up and to the right
 //   slide:    dir 1 curves a falling ball out to the right
-//   tramp, bumper, magnet, funnel, portal: dir is ignored
+//   glove:    dir 1 punches to the right
+//   pipe:     dir 1 lets the ball out to the right
+//   escalator: dir 1 carries the ball up and to the right
+//   balloon:  dir 1 drifts up and to the right
+//   spinner:  dir 1 spins clockwise
+//   tramp, bumper, magnet, funnel, portal, plank, block, jelly, blower, cloud: dir is ignored
 
 export const RAMP = { len: 280, r: 9, tilt: 0.38 };
 export const TRAMP = { w: 170, h: 70, launch: 1300 };
@@ -17,10 +22,23 @@ export const CANNON = { catchR: 72, barrel: 95, speed: 1200, angle: 0.9, hold: 0
 export const FUNNEL = { top: 118, bottom: 46, h: 110, r: 8 };
 export const SLIDE = { R: 230, r: 10, segs: 9 };
 export const PORTAL = { r: 58, catchR: 42 };
+export const PLANK = { len: 260, r: 9 };
+export const BLOCK = { size: 90 };
+export const JELLY = { size: 100, bounce: 620 };
+export const GLOVE = { size: 90, reach: 56, vx: 1000, vy: -320 };
+export const PIPE = { size: 100, catchR: 52, speed: 760, hold: 0.3 };
+export const ESC = { len: 300, r: 18, tilt: 0.5, speed: 430 };
+export const BLOWER = { size: 100, reach: 520, band: 170, accel: 2900 };
+export const CLOUD = { rx: 120, ry: 75, drag: 7 };
+export const BALLOON = { r: 52, catchR: 62, time: 1.25, vx: 170, vy: -300 };
+export const SPINNER = { R: 115, r: 9, speed: 2.6 };
 
-export const PIECE_TYPES = ['ramp', 'tramp', 'fan', 'conveyor', 'bumper', 'magnet', 'cannon', 'funnel', 'slide', 'portal'];
+export const PIECE_TYPES = [
+  'ramp', 'tramp', 'fan', 'conveyor', 'bumper', 'magnet', 'cannon', 'funnel', 'slide', 'portal',
+  'plank', 'block', 'jelly', 'glove', 'pipe', 'escalator', 'blower', 'cloud', 'balloon', 'spinner',
+];
 
-const FLIPPABLE = new Set(['ramp', 'fan', 'conveyor', 'cannon', 'slide']);
+const FLIPPABLE = new Set(['ramp', 'fan', 'conveyor', 'cannon', 'slide', 'glove', 'pipe', 'escalator', 'balloon', 'spinner']);
 
 // Whether a piece reacts to a tap (flip).
 export function canFlip(type) {
@@ -55,6 +73,13 @@ export function funnelSegs(p) {
     [p.x - top, p.y - h / 2, p.x - bottom, p.y + h / 2],
     [p.x + top, p.y - h / 2, p.x + bottom, p.y + h / 2],
   ];
+}
+
+// Low and high ends of an escalator belt.
+export function escalatorEnds(p) {
+  const hx = (Math.cos(ESC.tilt) * ESC.len) / 2;
+  const hy = (Math.sin(ESC.tilt) * ESC.len) / 2;
+  return [p.x - p.dir * hx, p.y + hy, p.x + p.dir * hx, p.y - hy];
 }
 
 // Where a cannon catches the ball, and the muzzle/velocity it fires with.
@@ -129,9 +154,54 @@ export function pieceShapes(p) {
     }
     case 'portal':
       return { shapes: [], zones: [{ kind: 'portal', x: p.x, y: p.y, r: PORTAL.catchR }] };
+    case 'plank':
+      return { shapes: [seg(p.x - PLANK.len / 2, p.y, p.x + PLANK.len / 2, p.y, PLANK.r)], zones: [] };
+    case 'block': {
+      const s = BLOCK.size / 2;
+      return { shapes: [box(p.x - s, p.y - s, BLOCK.size, BLOCK.size)], zones: [] };
+    }
+    case 'jelly': {
+      const s = JELLY.size / 2;
+      return { shapes: [box(p.x - s, p.y - s, JELLY.size, JELLY.size, 'jelly')], zones: [] };
+    }
+    case 'glove': {
+      const s = GLOVE.size / 2;
+      const face = p.x + p.dir * s;
+      return {
+        shapes: [box(p.x - s, p.y - s, GLOVE.size, GLOVE.size)],
+        zones: [{ kind: 'punch', x0: Math.min(face, face + p.dir * GLOVE.reach), x1: Math.max(face, face + p.dir * GLOVE.reach), y0: p.y - 55, y1: p.y + 55, dir: p.dir, x: face, y: p.y }],
+      };
+    }
+    case 'pipe': {
+      const s = PIPE.size / 2;
+      // Reuses the cannon mechanism: catch at the top mouth, pop out of the side mouth.
+      return {
+        shapes: [box(p.x - s, p.y - s, PIPE.size, PIPE.size)],
+        zones: [{ kind: 'cannon', sub: 'pipe', x: p.x, y: p.y - s - 5, r: PIPE.catchR, mx: p.x + p.dir * (s + 45), my: p.y + 12, vx: p.dir * PIPE.speed, vy: 0, hold: PIPE.hold }],
+      };
+    }
+    case 'escalator': {
+      const [ax, ay, bx, by] = escalatorEnds(p);
+      return { shapes: [seg(ax, ay, bx, by, ESC.r, 'belt', { speed: ESC.speed })], zones: [] };
+    }
+    case 'blower': {
+      const s = BLOWER.size / 2;
+      return {
+        shapes: [box(p.x - s, p.y - s, BLOWER.size, BLOWER.size)],
+        zones: [{ kind: 'updraft', x0: p.x - BLOWER.band / 2, x1: p.x + BLOWER.band / 2, y0: p.y - s - BLOWER.reach, y1: p.y - s }],
+      };
+    }
+    case 'cloud':
+      return { shapes: [], zones: [{ kind: 'cloud', x: p.x, y: p.y, rx: CLOUD.rx, ry: CLOUD.ry }] };
+    case 'balloon':
+      return { shapes: [], zones: [{ kind: 'carry', x: p.x, y: p.y, r: BALLOON.catchR, vx: p.dir * BALLOON.vx, vy: BALLOON.vy, time: BALLOON.time }] };
+    case 'spinner':
+      return { shapes: [{ kind: 'spin', cx: p.x, cy: p.y, R: SPINNER.R, r: SPINNER.r, w: p.dir * SPINNER.speed, mat: 'spin' }], zones: [] };
   }
   return { shapes: [], zones: [] };
 }
+
+const square = (p, s) => ({ x0: p.x - s, y0: p.y - s, x1: p.x + s, y1: p.y + s });
 
 // Axis-aligned bounds of the visible body of a piece (for hit tests / clamping / overlap checks).
 export function pieceBounds(p) {
@@ -161,6 +231,29 @@ export function pieceBounds(p) {
       return { x0: p.x - SLIDE.R / 2 - SLIDE.r, y0: p.y - SLIDE.R / 2 - SLIDE.r, x1: p.x + SLIDE.R / 2 + SLIDE.r, y1: p.y + SLIDE.R / 2 + SLIDE.r };
     case 'portal':
       return { x0: p.x - PORTAL.r, y0: p.y - PORTAL.r * 1.2, x1: p.x + PORTAL.r, y1: p.y + PORTAL.r * 1.2 };
+    case 'plank':
+      return { x0: p.x - PLANK.len / 2 - PLANK.r, y0: p.y - PLANK.r, x1: p.x + PLANK.len / 2 + PLANK.r, y1: p.y + PLANK.r };
+    case 'block':
+      return square(p, BLOCK.size / 2);
+    case 'jelly':
+      return square(p, JELLY.size / 2);
+    case 'glove':
+      return { x0: p.x - GLOVE.size / 2 - (p.dir < 0 ? 30 : 0), y0: p.y - GLOVE.size / 2, x1: p.x + GLOVE.size / 2 + (p.dir > 0 ? 30 : 0), y1: p.y + GLOVE.size / 2 };
+    case 'pipe':
+      return { x0: p.x - PIPE.size / 2 - (p.dir < 0 ? 20 : 0), y0: p.y - PIPE.size / 2 - 12, x1: p.x + PIPE.size / 2 + (p.dir > 0 ? 20 : 0), y1: p.y + PIPE.size / 2 };
+    case 'escalator': {
+      const [ax, ay, bx, by] = escalatorEnds(p);
+      const r = ESC.r;
+      return { x0: Math.min(ax, bx) - r, y0: Math.min(ay, by) - r, x1: Math.max(ax, bx) + r, y1: Math.max(ay, by) + r };
+    }
+    case 'blower':
+      return square(p, BLOWER.size / 2);
+    case 'cloud':
+      return { x0: p.x - CLOUD.rx, y0: p.y - CLOUD.ry, x1: p.x + CLOUD.rx, y1: p.y + CLOUD.ry };
+    case 'balloon':
+      return { x0: p.x - BALLOON.r, y0: p.y - BALLOON.r * 1.2, x1: p.x + BALLOON.r, y1: p.y + BALLOON.r * 1.2 + 40 };
+    case 'spinner':
+      return square(p, SPINNER.R + SPINNER.r);
   }
   return { x0: p.x, y0: p.y, x1: p.x, y1: p.y };
 }

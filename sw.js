@@ -1,5 +1,5 @@
 // Network-first service worker: always fresh when online, still playable offline.
-const CACHE = 'ball-machine-v3';
+const CACHE = 'ball-machine-v4';
 const SHELL = [
   './',
   'index.html',

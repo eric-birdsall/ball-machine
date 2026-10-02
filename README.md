@@ -7,16 +7,14 @@ pre-readers can play.
 
 ## What's in it
 
-- **25 levels in 5 worlds, all unlocked from the start.** Finished levels get a
-  star. Each world has its own sky: day, meadow, sunset, night, candy.
-  1. Ramp, trampoline, conveyor, fan
-  2. Funnel, bumper
-  3. Slide, magnet
-  4. Cannon, portal
-  5. Longer machines with 3–4 pieces, plus a spare piece that isn't needed
-- **10 kinds of piece:** ramp, trampoline, fan, conveyor, bumper, magnet,
-  cannon, funnel, slide and portal. Pieces that point a way (ramp, fan,
-  conveyor, cannon, slide) flip when tapped.
+- **Levels in worlds of 10, all unlocked from the start.** Finished levels get
+  a star. Each world has its own sky. The game is growing toward 100 levels.
+- **20 kinds of piece:**
+  - ramp, trampoline, fan, conveyor, bumper, magnet, cannon, funnel, slide, portal
+  - plank, brick block, jelly cube, boxing glove, elbow pipe, escalator, blower,
+    cloud, balloon, pinwheel spinner
+
+  Pieces that point a way flip when tapped.
 - **Kid-friendly help:**
   - Pieces snap onto the right spot when dropped nearby.
   - Level 1 has an animated tutorial hand.
@@ -54,7 +52,7 @@ The tests run every level headlessly and check that:
 
 | File | What it does |
 | --- | --- |
-| `js/levels.js` | Level data. Each level lists its `solution`, which drives snapping, hints and tests. Tray entries not in the solution are decoys. |
+| `js/levels.js` | Level data, in play order. Each level has a stable `key` (saved stars use it) and a `solution`, which drives snapping, hints and tests. Tray entries not in the solution are decoys. |
 | `js/physics.js` | Small one-ball physics sim, pure JS so it runs in Node. |
 | `js/pieces.js` | Piece sizes, collision shapes and trigger zones (wind, magnet, cannon, portal). |
 | `js/render.js` | All canvas drawing and the UI layout (1920×1080 logical space). |
@@ -63,14 +61,31 @@ The tests run every level headlessly and check that:
 
 ## Level design tools
 
+The first 20 levels and the last 5 are hand-made. The rest are built by a
+generator from short recipes.
+
+**Generated levels.** `tests/recipes.mjs` lists, for each level, which pieces
+the ball meets and in what order. The generator (`tests/gen.mjs`) follows the
+ball, places each piece on its path, puts the bucket where the ball comes down,
+adds scenery, and keeps only levels that pass every check. To rebuild them into
+`js/levels.js`:
+
 ```bash
-node tests/check.mjs
+node tests/build-levels.mjs --write
 ```
 
-This prints each level's status. For level 12, for example:
+To try one recipe and see why it fails:
 
 ```bash
-node tests/check.mjs 12
+GEN_DEBUG=1 node tests/build-levels.mjs g31
+```
+
+Never rename or reuse a level `key`: saved stars depend on it.
+
+**Hand-made levels.** Print each level's status:
+
+```bash
+node tests/check.mjs
 ```
 
 Print the ball's path for a level, optionally with one solution piece removed:
@@ -79,8 +94,8 @@ Print the ball's path for a level, optionally with one solution piece removed:
 node tests/trace.mjs 12 without=0
 ```
 
-Move each solution piece to its most forgiving winning spot (every piece stays
-needed and nothing overlaps). `--write` updates `js/levels.js`:
+Move each solution piece to its most forgiving winning spot (`--write` updates
+`js/levels.js`):
 
 ```bash
 node tests/autotune.mjs 12 200 2 --write

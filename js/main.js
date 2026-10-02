@@ -1,6 +1,6 @@
 import { LEVELS } from './levels.js';
 import { createSim, stepSim, WORLD, BUCKET } from './physics.js';
-import { pieceBounds, canFlip } from './pieces.js';
+import { pieceBounds, canFlip, SPINNER } from './pieces.js';
 import { initAudio, sfx, setMusic } from './audio.js';
 import {
   VIEW, UI, drawLevel, drawLevelSelect, drawTray, drawWinOverlay, drawHand, drawPiece, slotIcon,
@@ -34,6 +34,15 @@ function save(key, value) {
   }
 }
 
+// Stars are remembered by level key. Older saves stored positions in the
+// original 25 levels, whose keys are a01..a25.
+function loadProgress() {
+  const p = load('bm-progress-v3', null);
+  if (p) return p;
+  const old = load('bm-progress-v2', null);
+  return { done: (old?.done || []).map((i) => `a${String(i + 1).padStart(2, '0')}`) };
+}
+
 // ------------------------------------------------------------ game state
 
 const game = {
@@ -59,7 +68,7 @@ const game = {
   hasRun: false,
   readyToGo: false,
   musicOn: load('bm-music', true),
-  progress: load('bm-progress-v2', { done: [] }), // every level is open; this only tracks stars
+  progress: loadProgress(), // every level is open; this only tracks stars
 };
 window.__game = game; // handy for debugging in the browser console
 
@@ -87,7 +96,11 @@ window.__startLevel = (i) => startLevel(i); // debugging: jump straight to a lev
 
 function resetBall() {
   const b = game.level.ball;
-  Object.assign(game.ballView, { x: b.x, y: b.y, rot: 0, vx: 0, vy: 0, squash: 0, visible: true });
+  Object.assign(game.ballView, { x: b.x, y: b.y, rot: 0, vx: 0, vy: 0, squash: 0, visible: true, carriedBy: null });
+  for (const p of [...game.placed, ...(game.level.fixed || [])]) {
+    p.popped = false; // balloons come back
+    delete p.spin; // spinners go back to idling
+  }
   game.dropT = 0.35;
   game.bucketMood = 'idle';
 }
@@ -102,7 +115,7 @@ function openSelect() {
 
 // Open the level picker on the world with the first level not yet completed.
 function firstUnfinishedPage() {
-  const next = LEVELS.findIndex((_, i) => !game.progress.done.includes(i));
+  const next = LEVELS.findIndex((l) => !game.progress.done.includes(l.key));
   return next < 0 ? 0 : Math.floor(next / UI.levelsPerPage);
 }
 
@@ -130,8 +143,8 @@ function onWin() {
   burst(b.x, b.y - BUCKET.h, 70, 'confetti');
   burst(b.x, b.y - BUCKET.h, 12, 'star');
   const p = game.progress;
-  if (!p.done.includes(game.levelIndex)) p.done.push(game.levelIndex);
-  save('bm-progress-v2', p);
+  if (!p.done.includes(game.level.key)) p.done.push(game.level.key);
+  save('bm-progress-v3', p);
 }
 
 function onMiss() {
@@ -235,6 +248,27 @@ function update(dt) {
         burst(e.x, e.y, 10, 'puff');
         const cannon = nearestPiece('cannon', e.x, e.y);
         if (cannon) cannon.squash = 1;
+      } else if (e.type === 'wobble') {
+        sfx('wobble');
+        bv.squash = 1;
+        const jelly = nearestPiece('jelly', e.x, e.y);
+        if (jelly) jelly.squash = 1;
+      } else if (e.type === 'punch') {
+        sfx('punch');
+        bv.squash = 1;
+        const glove = nearestPiece('glove', e.x, e.y);
+        if (glove) glove.squash = 1;
+      } else if (e.type === 'pipeOut') {
+        sfx('pipeOut');
+      } else if (e.type === 'grab') {
+        sfx('grab');
+        const balloon = nearestPiece('balloon', e.x, e.y);
+        if (balloon) balloon.popped = true; // it leaves its spot and rides with the ball
+        bv.carriedBy = balloon;
+      } else if (e.type === 'pop') {
+        sfx('balloonPop');
+        burst(e.x, e.y, 10, 'sparkle');
+        bv.carriedBy = null;
       } else if (e.type === 'warp') {
         sfx('warp');
         burst(e.x, e.y, 8, 'sparkle');
@@ -244,6 +278,8 @@ function update(dt) {
     game.sim.events.length = 0;
     const b = game.sim.ball;
     Object.assign(bv, { x: b.x, y: b.y, rot: b.rot, vx: b.vx, vy: b.vy, visible: !b.hidden });
+    // Spinners turn with the sim clock so what you see matches what the ball hits.
+    for (const p of game.placed) if (p.type === 'spinner') p.spin = p.dir * SPINNER.speed * game.sim.clock;
     bv.squash = Math.max(0, bv.squash - dt * 6);
     const bk = game.level.bucket;
     game.bucketMood = Math.hypot(b.x - bk.x, b.y - (bk.y - BUCKET.h)) < 330 ? 'near' : 'idle';

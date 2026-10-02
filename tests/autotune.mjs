@@ -58,10 +58,10 @@ console.log('solution: [\n' + sol.map((p) => `      { type: '${p.type}', x: ${p.
 if (process.argv.includes('--write')) {
   const file = new URL('../js/levels.js', import.meta.url);
   const src = readFileSync(file, 'utf8');
-  const at = src.indexOf(`id: ${level.id},`);
+  const at = src.indexOf(`key: '${level.key}',`);
   const start = src.indexOf('solution: [', at);
   const end = src.indexOf('],', start) + 2;
   const body = 'solution: [\n' + sol.map((p) => `      { type: '${p.type}', x: ${p.x}, y: ${p.y}, dir: ${p.dir} },`).join('\n') + '\n    ],';
   writeFileSync(file, src.slice(0, start) + body + src.slice(end));
-  console.log(`wrote level ${level.id}`);
+  console.log(`wrote level ${level.key}`);
 }

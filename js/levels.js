@@ -1,4 +1,5 @@
-// Level definitions. World is 1600 x 1080 with the ground top at y = 1040.
+// Level definitions, in play order. World is 1600 x 1080 with the ground top at y = 1040.
+//   key:      stable id used to remember stars (so levels can be reordered)
 //   ball:     where the ball starts (it drops out of a pipe)
 //   walls:    [ax, ay, bx, by, radius] wooden beams
 //   blocks:   [x, y, w, h] brick blocks
@@ -9,8 +10,10 @@
 //   tutorial: show the animated "drag this here" hand
 
 export const LEVELS = [
+  // ---- Worlds 1-2 (hand-made): ramps, trampolines, conveyors, fans, funnels, bumpers,
+  //      slides, magnets, cannons, portals
   {
-    id: 1,
+    key: 'a01',
     ball: { x: 200, y: 170 },
     walls: [
       [90, 300, 560, 410, 12],
@@ -27,7 +30,7 @@ export const LEVELS = [
     tutorial: true,
   },
   {
-    id: 2,
+    key: 'a02',
     ball: { x: 160, y: 150 },
     walls: [[70, 260, 430, 340, 12]],
     blocks: [
@@ -38,9 +41,8 @@ export const LEVELS = [
     tray: [{ type: 'tramp', count: 1 }],
     solution: [{ type: 'tramp', x: 790, y: 1005, dir: 1 }],
   },
-  // ---- World 1: ramps, trampolines, conveyors, fans
   {
-    id: 3,
+    key: 'a03',
     ball: { x: 300, y: 150 },
     walls: [[780, 300, 780, 760, 14]],
     blocks: [],
@@ -52,7 +54,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 4,
+    key: 'a04',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[580, 700, 110, 340], [1080, 560, 44, 480]],
@@ -61,7 +63,7 @@ export const LEVELS = [
     solution: [{ type: 'conveyor', x: 340, y: 650, dir: 1 }],
   },
   {
-    id: 5,
+    key: 'a05',
     ball: { x: 260, y: 140 },
     walls: [],
     blocks: [
@@ -78,9 +80,8 @@ export const LEVELS = [
       { type: 'fan', x: 760, y: 570, dir: 1 },
     ],
   },
-  // ---- World 2: funnels and bumpers
   {
-    id: 6,
+    key: 'a06',
     ball: { x: 160, y: 150 },
     walls: [[60, 270, 520, 380, 12]],
     blocks: [],
@@ -89,7 +90,7 @@ export const LEVELS = [
     solution: [{ type: 'funnel', x: 700, y: 600, dir: 1 }],
   },
   {
-    id: 7,
+    key: 'a07',
     ball: { x: 400, y: 150 },
     walls: [],
     blocks: [[620, 560, 100, 480], [1300, 600, 44, 440]],
@@ -98,7 +99,7 @@ export const LEVELS = [
     solution: [{ type: 'bumper', x: 360, y: 470, dir: 1 }],
   },
   {
-    id: 8,
+    key: 'a08',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[1150, 600, 320, 440]],
@@ -113,7 +114,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 9,
+    key: 'a09',
     ball: { x: 160, y: 150 },
     walls: [[60, 270, 520, 380, 12]],
     blocks: [],
@@ -128,7 +129,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 10,
+    key: 'a10',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[880, 560, 90, 480], [1400, 600, 44, 440]],
@@ -142,9 +143,8 @@ export const LEVELS = [
       { type: 'bumper', x: 730, y: 820, dir: 1 },
     ],
   },
-  // ---- World 3: slides and magnets
   {
-    id: 11,
+    key: 'a11',
     ball: { x: 300, y: 150 },
     walls: [],
     blocks: [[700, 700, 120, 340], [1450, 500, 44, 540]],
@@ -153,7 +153,7 @@ export const LEVELS = [
     solution: [{ type: 'slide', x: 330, y: 500, dir: 1 }],
   },
   {
-    id: 12,
+    key: 'a12',
     ball: { x: 200, y: 150 },
     walls: [[100, 330, 470, 410, 12]],
     blocks: [],
@@ -164,7 +164,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 13,
+    key: 'a13',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[900, 450, 100, 590], [1150, 700, 300, 340]],
@@ -179,7 +179,7 @@ export const LEVELS = [
     ],
   },
     {
-    id: 14,
+    key: 'a14',
     ball: { x: 200, y: 150 },
     walls: [[80, 640, 480, 700, 12]],
     blocks: [[1330, 640, 44, 400]],
@@ -194,7 +194,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 15,
+    key: 'a15',
     ball: { x: 800, y: 150 },
     walls: [],
     blocks: [[0, 830, 900, 210], [1470, 560, 44, 480]],
@@ -210,9 +210,8 @@ export const LEVELS = [
       { type: 'magnet', x: 1050, y: 880, dir: 1 },
     ],
   },
-  // ---- World 4: cannons and portals
   {
-    id: 16,
+    key: 'a16',
     ball: { x: 300, y: 150 },
     walls: [],
     blocks: [[700, 700, 100, 340], [1400, 600, 44, 440]],
@@ -223,7 +222,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 17,
+    key: 'a17',
     ball: { x: 300, y: 150 },
     walls: [],
     blocks: [[700, 250, 100, 790]],
@@ -233,7 +232,7 @@ export const LEVELS = [
     solution: [{ type: 'portal', x: 300, y: 650, dir: 1 }],
   },
   {
-    id: 18,
+    key: 'a18',
     ball: { x: 700, y: 150 },
     walls: [],
     blocks: [[560, 600, 90, 440]],
@@ -248,7 +247,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 19,
+    key: 'a19',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[560, 300, 90, 740], [1520, 600, 44, 440]],
@@ -264,7 +263,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 20,
+    key: 'a20',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[800, 560, 90, 480]],
@@ -279,9 +278,372 @@ export const LEVELS = [
       { type: 'cannon', x: 1350, y: 910, dir: -1 },
     ],
   },
-  // ---- World 5: longer machines, plus a spare piece that isn't needed
+  // <generated> (built by tests/build-levels.mjs; edit the recipes there, not here)
+  // ---- World 3: planks and bricks
   {
-    id: 21,
+    key: 'g21',
+    ball: { x: 220, y: 150 },
+    walls: [[120, 310, 520, 380, 12]],
+    blocks: [[870, 770, 220, 270], [1098, 400, 44, 640], [630, 780, 120, 260], [390, 630, 100, 410]],
+    bucket: { x: 980, y: 770 },
+    tray: [{ type: 'plank', count: 1 }],
+    solution: [
+      { type: 'plank', x: 700, y: 450, dir: 1 },
+    ],
+  },
+  {
+    key: 'g22',
+    ball: { x: 1210, y: 150 },
+    walls: [[1310, 250, 1010, 320, 12]],
+    blocks: [[190, 530, 100, 510], [360, 590, 90, 450]],
+    bucket: { x: 970, y: 1040 },
+    tray: [{ type: 'block', count: 1 }],
+    solution: [
+      { type: 'block', x: 840, y: 310, dir: 1 },
+    ],
+  },
+  {
+    key: 'g23',
+    ball: { x: 180, y: 150 },
+    walls: [[80, 280, 420, 370, 12]],
+    blocks: [[1538, 670, 44, 370], [480, 620, 90, 420], [660, 720, 70, 320]],
+    bucket: { x: 1420, y: 1040 },
+    tray: [{ type: 'ramp', count: 1 }, { type: 'plank', count: 1 }],
+    solution: [
+      { type: 'ramp', x: 550, y: 440, dir: 1 },
+      { type: 'plank', x: 970, y: 690, dir: 1 },
+    ],
+  },
+  {
+    key: 'g24',
+    ball: { x: 1100, y: 150 },
+    walls: [],
+    blocks: [[1290, 690, 120, 350], [270, 530, 80, 510]],
+    bucket: { x: 690, y: 1040 },
+    tray: [{ type: 'conveyor', count: 1 }, { type: 'block', count: 1 }],
+    solution: [
+      { type: 'conveyor', x: 1000, y: 700, dir: -1 },
+      { type: 'block', x: 570, y: 750, dir: 1 },
+    ],
+  },
+  {
+    key: 'g25',
+    ball: { x: 330, y: 150 },
+    walls: [[230, 290, 620, 360, 12]],
+    blocks: [[440, 820, 120, 220], [770, 830, 80, 210]],
+    bucket: { x: 1070, y: 1040 },
+    tray: [{ type: 'plank', count: 1 }, { type: 'funnel', count: 1 }],
+    solution: [
+      { type: 'plank', x: 800, y: 440, dir: 1 },
+      { type: 'funnel', x: 1090, y: 700, dir: 1 },
+    ],
+  },
+  {
+    key: 'g26',
+    ball: { x: 260, y: 150 },
+    walls: [],
+    blocks: [[1408, 670, 44, 370], [470, 840, 80, 200], [670, 840, 60, 200]],
+    bucket: { x: 1290, y: 1040 },
+    tray: [{ type: 'slide', count: 1 }, { type: 'plank', count: 1 }],
+    solution: [
+      { type: 'slide', x: 320, y: 400, dir: 1 },
+      { type: 'plank', x: 600, y: 550, dir: 1 },
+    ],
+  },
+  {
+    key: 'g27',
+    ball: { x: 1090, y: 150 },
+    walls: [],
+    blocks: [[630, 660, 130, 380], [340, 540, 120, 500]],
+    bucket: { x: 1360, y: 1040 },
+    tray: [{ type: 'ramp', count: 1 }, { type: 'block', count: 1 }],
+    solution: [
+      { type: 'ramp', x: 1170, y: 410, dir: 1 },
+      { type: 'block', x: 1500, y: 490, dir: 1 },
+    ],
+  },
+  {
+    key: 'g28',
+    ball: { x: 180, y: 150 },
+    walls: [[80, 310, 460, 410, 12]],
+    blocks: [[850, 840, 70, 200], [310, 710, 90, 330]],
+    bucket: { x: 1440, y: 1040 },
+    tray: [{ type: 'plank', count: 1 }, { type: 'tramp', count: 1 }],
+    solution: [
+      { type: 'plank', x: 750, y: 620, dir: 1 },
+      { type: 'tramp', x: 1070, y: 800, dir: 1 },
+    ],
+  },
+  {
+    key: 'g29',
+    ball: { x: 910, y: 150 },
+    walls: [],
+    blocks: [[1060, 790, 120, 250], [90, 770, 130, 270]],
+    bucket: { x: 550, y: 1040 },
+    tray: [{ type: 'bumper', count: 1 }, { type: 'block', count: 1 }],
+    solution: [
+      { type: 'bumper', x: 930, y: 620, dir: -1 },
+      { type: 'block', x: 400, y: 340, dir: 1 },
+    ],
+  },
+  {
+    key: 'g30',
+    ball: { x: 340, y: 150 },
+    walls: [],
+    blocks: [[1450, 660, 80, 380], [560, 770, 130, 270]],
+    bucket: { x: 1020, y: 1040 },
+    tray: [{ type: 'ramp', count: 1 }, { type: 'plank', count: 1 }, { type: 'block', count: 1 }],
+    solution: [
+      { type: 'ramp', x: 420, y: 540, dir: 1 },
+      { type: 'plank', x: 720, y: 650, dir: 1 },
+      { type: 'block', x: 1180, y: 760, dir: 1 },
+    ],
+  },
+  // ---- World 4: jelly cubes and boxing gloves
+  {
+    key: 'g31',
+    ball: { x: 1260, y: 150 },
+    walls: [[1360, 290, 1050, 390, 12]],
+    blocks: [[350, 820, 220, 220], [298, 450, 44, 590], [800, 790, 110, 250], [60, 660, 120, 380]],
+    bucket: { x: 460, y: 820 },
+    tray: [{ type: 'jelly', count: 1 }],
+    solution: [
+      { type: 'jelly', x: 990, y: 480, dir: 1 },
+    ],
+  },
+  {
+    key: 'g32',
+    ball: { x: 340, y: 150 },
+    walls: [],
+    blocks: [[1278, 670, 44, 370], [1050, 740, 90, 300], [800, 860, 130, 180]],
+    bucket: { x: 1440, y: 1040 },
+    tray: [{ type: 'glove', count: 1 }],
+    solution: [
+      { type: 'glove', x: 280, y: 320, dir: 1 },
+    ],
+  },
+  {
+    key: 'g33',
+    ball: { x: 1270, y: 150 },
+    walls: [[1370, 280, 1070, 350, 12]],
+    blocks: [[640, 840, 110, 200], [890, 680, 100, 360]],
+    bucket: { x: 160, y: 1040 },
+    tray: [{ type: 'ramp', count: 1 }, { type: 'jelly', count: 1 }],
+    solution: [
+      { type: 'ramp', x: 810, y: 570, dir: -1 },
+      { type: 'jelly', x: 350, y: 920, dir: 1 },
+    ],
+  },
+  {
+    key: 'g34',
+    ball: { x: 980, y: 150 },
+    walls: [],
+    blocks: [[1240, 650, 100, 390], [720, 620, 70, 420]],
+    bucket: { x: 380, y: 1040 },
+    tray: [{ type: 'glove', count: 1 }, { type: 'funnel', count: 1 }],
+    solution: [
+      { type: 'glove', x: 1080, y: 330, dir: -1 },
+      { type: 'funnel', x: 350, y: 490, dir: 1 },
+    ],
+  },
+  {
+    key: 'g35',
+    ball: { x: 200, y: 150 },
+    walls: [[100, 260, 480, 350, 12]],
+    blocks: [[1508, 670, 44, 370], [940, 620, 80, 420], [280, 730, 120, 310]],
+    bucket: { x: 1390, y: 1040 },
+    tray: [{ type: 'jelly', count: 1 }, { type: 'plank', count: 1 }],
+    solution: [
+      { type: 'jelly', x: 670, y: 590, dir: 1 },
+      { type: 'plank', x: 970, y: 420, dir: 1 },
+    ],
+  },
+  {
+    key: 'g36',
+    ball: { x: 570, y: 150 },
+    walls: [],
+    blocks: [[1220, 650, 60, 390], [170, 670, 90, 370]],
+    bucket: { x: 880, y: 1040 },
+    tray: [{ type: 'conveyor', count: 1 }, { type: 'glove', count: 1 }],
+    solution: [
+      { type: 'conveyor', x: 680, y: 630, dir: 1 },
+      { type: 'glove', x: 1100, y: 740, dir: -1 },
+    ],
+  },
+  {
+    key: 'g37',
+    ball: { x: 1400, y: 150 },
+    walls: [[1500, 290, 1160, 360, 12]],
+    blocks: [[340, 820, 110, 220], [690, 570, 80, 470]],
+    bucket: { x: 980, y: 1040 },
+    tray: [{ type: 'jelly', count: 1 }, { type: 'block', count: 1 }],
+    solution: [
+      { type: 'jelly', x: 1110, y: 420, dir: 1 },
+      { type: 'block', x: 830, y: 230, dir: 1 },
+    ],
+  },
+  {
+    key: 'g38',
+    ball: { x: 500, y: 150 },
+    walls: [],
+    blocks: [[700, 790, 90, 250], [120, 690, 60, 350]],
+    bucket: { x: 1460, y: 1040 },
+    tray: [{ type: 'slide', count: 1 }, { type: 'jelly', count: 1 }],
+    solution: [
+      { type: 'slide', x: 590, y: 460, dir: 1 },
+      { type: 'jelly', x: 880, y: 690, dir: 1 },
+    ],
+  },
+  {
+    key: 'g39',
+    ball: { x: 1230, y: 150 },
+    walls: [[1330, 290, 930, 380, 12]],
+    blocks: [[1320, 920, 220, 120], [1268, 550, 44, 490], [490, 700, 100, 340], [760, 860, 120, 180]],
+    bucket: { x: 1430, y: 920 },
+    tray: [{ type: 'glove', count: 1 }, { type: 'tramp', count: 1 }],
+    solution: [
+      { type: 'glove', x: 700, y: 530, dir: 1 },
+      { type: 'tramp', x: 1110, y: 520, dir: 1 },
+    ],
+  },
+  {
+    key: 'g40',
+    ball: { x: 450, y: 150 },
+    walls: [],
+    blocks: [[90, 740, 110, 300], [760, 870, 60, 170]],
+    bucket: { x: 1210, y: 1040 },
+    tray: [{ type: 'ramp', count: 1 }, { type: 'glove', count: 1 }, { type: 'plank', count: 1 }],
+    solution: [
+      { type: 'ramp', x: 520, y: 570, dir: 1 },
+      { type: 'glove', x: 730, y: 760, dir: 1 },
+      { type: 'plank', x: 1430, y: 790, dir: 1 },
+    ],
+  },
+  // ---- World 5: pipes and escalators
+  {
+    key: 'g41',
+    ball: { x: 1220, y: 150 },
+    walls: [[1320, 320, 920, 420, 12]],
+    blocks: [[158, 670, 44, 370], [810, 680, 100, 360], [1000, 770, 70, 270]],
+    bucket: { x: 320, y: 1040 },
+    tray: [{ type: 'pipe', count: 1 }],
+    solution: [
+      { type: 'pipe', x: 720, y: 710, dir: -1 },
+    ],
+  },
+  {
+    key: 'g42',
+    ball: { x: 410, y: 150 },
+    walls: [[310, 300, 680, 400, 12]],
+    blocks: [[1040, 600, 220, 440], [1268, 230, 44, 810], [830, 870, 70, 170], [170, 750, 80, 290]],
+    bucket: { x: 1150, y: 600 },
+    tray: [{ type: 'escalator', count: 1 }],
+    solution: [
+      { type: 'escalator', x: 870, y: 410, dir: 1 },
+    ],
+  },
+  {
+    key: 'g43',
+    ball: { x: 480, y: 150 },
+    walls: [],
+    blocks: [[1438, 670, 44, 370], [260, 780, 120, 260], [60, 820, 80, 220]],
+    bucket: { x: 1320, y: 1040 },
+    tray: [{ type: 'pipe', count: 1 }, { type: 'ramp', count: 1 }],
+    solution: [
+      { type: 'pipe', x: 460, y: 430, dir: 1 },
+      { type: 'ramp', x: 790, y: 560, dir: 1 },
+    ],
+  },
+  {
+    key: 'g44',
+    ball: { x: 370, y: 150 },
+    walls: [[270, 250, 620, 310, 12]],
+    blocks: [[160, 720, 60, 320], [1400, 600, 90, 440]],
+    bucket: { x: 1180, y: 1040 },
+    tray: [{ type: 'escalator', count: 1 }, { type: 'funnel', count: 1 }],
+    solution: [
+      { type: 'escalator', x: 880, y: 440, dir: 1 },
+      { type: 'funnel', x: 1180, y: 650, dir: 1 },
+    ],
+  },
+  {
+    key: 'g45',
+    ball: { x: 1090, y: 150 },
+    walls: [],
+    blocks: [[1350, 610, 130, 430], [840, 690, 90, 350]],
+    bucket: { x: 180, y: 1040 },
+    tray: [{ type: 'pipe', count: 1 }, { type: 'jelly', count: 1 }],
+    solution: [
+      { type: 'pipe', x: 1100, y: 490, dir: -1 },
+      { type: 'jelly', x: 630, y: 750, dir: 1 },
+    ],
+  },
+  {
+    key: 'g46',
+    ball: { x: 570, y: 150 },
+    walls: [],
+    blocks: [[1258, 670, 44, 370], [110, 610, 60, 430], [250, 700, 100, 340]],
+    bucket: { x: 1140, y: 1040 },
+    tray: [{ type: 'escalator', count: 1 }, { type: 'glove', count: 1 }],
+    solution: [
+      { type: 'escalator', x: 460, y: 430, dir: -1 },
+      { type: 'glove', x: 780, y: 750, dir: 1 },
+    ],
+  },
+  {
+    key: 'g47',
+    ball: { x: 1180, y: 150 },
+    walls: [],
+    blocks: [[660, 660, 110, 380], [1260, 710, 120, 330]],
+    bucket: { x: 190, y: 1040 },
+    tray: [{ type: 'pipe', count: 1 }, { type: 'tramp', count: 1 }],
+    solution: [
+      { type: 'pipe', x: 1170, y: 500, dir: -1 },
+      { type: 'tramp', x: 930, y: 610, dir: 1 },
+    ],
+  },
+  {
+    key: 'g48',
+    ball: { x: 1250, y: 150 },
+    walls: [],
+    blocks: [[278, 670, 44, 370], [950, 800, 130, 240], [70, 710, 110, 330]],
+    bucket: { x: 440, y: 1040 },
+    tray: [{ type: 'conveyor', count: 1 }, { type: 'escalator', count: 1 }],
+    solution: [
+      { type: 'conveyor', x: 1170, y: 660, dir: -1 },
+      { type: 'escalator', x: 820, y: 640, dir: -1 },
+    ],
+  },
+  {
+    key: 'g49',
+    ball: { x: 280, y: 150 },
+    walls: [[180, 320, 600, 410, 12]],
+    blocks: [[560, 670, 110, 370], [770, 800, 90, 240]],
+    bucket: { x: 1400, y: 1040 },
+    tray: [{ type: 'pipe', count: 1 }, { type: 'plank', count: 1 }, { type: 'block', count: 1 }],
+    solution: [
+      { type: 'pipe', x: 800, y: 690, dir: 1 },
+      { type: 'plank', x: 1170, y: 800, dir: 1 },
+      { type: 'block', x: 1540, y: 790, dir: 1 },
+    ],
+  },
+  {
+    key: 'g50',
+    ball: { x: 1310, y: 150 },
+    walls: [],
+    blocks: [[868, 670, 44, 370], [200, 800, 60, 240], [510, 760, 90, 280]],
+    bucket: { x: 1030, y: 1040 },
+    tray: [{ type: 'escalator', count: 1 }, { type: 'pipe', count: 1 }, { type: 'funnel', count: 1 }],
+    solution: [
+      { type: 'escalator', x: 1200, y: 620, dir: -1 },
+      { type: 'pipe', x: 1490, y: 780, dir: -1 },
+      { type: 'funnel', x: 1350, y: 910, dir: 1 },
+    ],
+  },
+  // </generated>
+  // ---- The original finale: longer machines, plus a spare piece that isn't needed
+  {
+    key: 'a21',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[880, 560, 90, 480]],
@@ -299,7 +661,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 22,
+    key: 'a22',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[1150, 350, 80, 690], [1560, 560, 40, 480]],
@@ -315,7 +677,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 23,
+    key: 'a23',
     ball: { x: 600, y: 150 },
     walls: [],
     blocks: [[900, 700, 80, 340]],
@@ -334,7 +696,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 24,
+    key: 'a24',
     ball: { x: 250, y: 150 },
     walls: [],
     blocks: [[1290, 720, 220, 320]],
@@ -352,7 +714,7 @@ export const LEVELS = [
     ],
   },
   {
-    id: 25,
+    key: 'a25',
     ball: { x: 120, y: 150 },
     walls: [
       [230, 520, 360, 520, 12],
