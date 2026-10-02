@@ -380,11 +380,18 @@ let scale = 1;
 let offX = 0;
 let offY = 0;
 let ext = { x0: 0, y0: 0, x1: VIEW.W, y1: VIEW.H };
+let viewW = 0;
+let viewH = 0;
 
 function resize() {
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
+  // The window can briefly report no size (page opened in the background, or a
+  // home-screen launch still settling). Wait for a real one rather than scale by 0.
+  if (!(w > 0 && h > 0)) return;
+  viewW = w;
+  viewH = h;
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.width = Math.round(w * dpr);
   canvas.height = Math.round(h * dpr);
   canvas.style.width = `${w}px`;
@@ -683,11 +690,14 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200));
 
 let last = performance.now();
 function frame(now) {
+  requestAnimationFrame(frame); // first, so one bad frame can't stop the game
   const dt = Math.min(1 / 30, (now - last) / 1000);
   last = now;
+  // Resize events aren't reliable on phones (rotation, home-screen launch), so check each frame.
+  if (window.innerWidth !== viewW || window.innerHeight !== viewH) resize();
+  if (!viewW) return;
   update(dt);
   draw();
-  requestAnimationFrame(frame);
 }
 
 resize();
