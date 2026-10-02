@@ -3,11 +3,8 @@ import { createSim, stepSim, WORLD, BUCKET } from './physics.js';
 import { pieceBounds, canFlip } from './pieces.js';
 import { initAudio, sfx, setMusic } from './audio.js';
 import {
-  VIEW, UI, THEMES, drawLevel, drawLevelSelect, drawTray, drawWinOverlay, drawHand, drawPiece, slotIcon,
-  drawBackground, drawBall, drawBucket,
+  VIEW, UI, drawLevel, drawLevelSelect, drawTray, drawWinOverlay, drawHand, drawPiece, slotIcon,
 } from './render.js';
-import { newSession, tickSession, levelWon } from './session.js';
-import { createMenus } from './menu.js';
 
 const STEP = 1 / 60;
 const SNAP_RADIUS = 110; // how close a drop must be to a target spot to snap onto it
@@ -42,9 +39,8 @@ function save(key, value) {
 const game = {
   levels: LEVELS,
   levelCount: LEVELS.length,
-  screen: 'home', // 'home' (grown-up menu) | 'select' (level picker) | 'level'
+  screen: 'select', // 'select' (level picker) | 'level'
   page: 0, // level-select page (one per world)
-  session: null, // see session.js; null until a mode is chosen on the main menu
   levelIndex: 0,
   level: LEVELS[0],
   placed: [],
@@ -63,7 +59,7 @@ const game = {
   hasRun: false,
   readyToGo: false,
   musicOn: load('bm-music', true),
-  progress: load('bm-progress-v2', { unlocked: 1, done: [] }),
+  progress: load('bm-progress-v2', { done: [] }), // every level is open; this only tracks stars
 };
 window.__game = game; // handy for debugging in the browser console
 
@@ -96,80 +92,18 @@ function resetBall() {
   game.bucketMood = 'idle';
 }
 
-// ------------------------------------------------------------ sessions & menus
-
-const menus = createMenus(document.getElementById('ui'), {
-  tap: () => {
-    initAudio(game.musicOn);
-    sfx('tap');
-  },
-  lastChoice: (kind) => load(`bm-last-${kind}`, null),
-  startLevels: (n) => {
-    save('bm-last-levels', n);
-    beginSession(newSession('levels', n));
-  },
-  startTime: (min) => {
-    save('bm-last-time', min);
-    beginSession(newSession('time', min));
-  },
-  startFree: () => beginSession(newSession('free')),
-  endSession: () => {
-    game.session = null;
-    saveSession();
-    goHome();
-  },
-});
-
-function saveSession() {
-  save('bm-session', game.session);
-}
-
-function beginSession(s) {
-  game.session = s;
-  saveSession();
-  openSelect();
-}
-
 function openSelect() {
-  menus.hide();
   game.screen = 'select';
   game.mode = 'edit';
   game.sim = null;
   game.drag = null;
   game.particles = [];
-  game.page = Math.min(Math.floor((game.progress.unlocked - 1) / UI.levelsPerPage), Math.ceil(game.levelCount / UI.levelsPerPage) - 1);
 }
 
-function goHome() {
-  game.screen = 'home';
-  game.sim = null;
-  game.drag = null;
-  menus.home();
-}
-
-// Leaving a limited session needs a grown-up, or it could just be restarted.
-function leaveSession() {
-  if (!game.session || game.session.mode === 'free') {
-    game.session = null;
-    saveSession();
-    goHome();
-  } else {
-    menus.gate(
-      () => {
-        game.session = null;
-        saveSession();
-        goHome();
-      },
-      () => menus.hide(),
-    );
-  }
-}
-
-function showDone() {
-  game.screen = 'home';
-  game.sim = null;
-  game.drag = null;
-  menus.done();
+// Open the level picker on the world with the first level not yet completed.
+function firstUnfinishedPage() {
+  const next = LEVELS.findIndex((_, i) => !game.progress.done.includes(i));
+  return next < 0 ? 0 : Math.floor(next / UI.levelsPerPage);
 }
 
 function go() {
@@ -197,10 +131,7 @@ function onWin() {
   burst(b.x, b.y - BUCKET.h, 12, 'star');
   const p = game.progress;
   if (!p.done.includes(game.levelIndex)) p.done.push(game.levelIndex);
-  p.unlocked = Math.max(p.unlocked, Math.min(game.levelCount, game.levelIndex + 2));
   save('bm-progress-v2', p);
-  levelWon(game.session);
-  saveSession();
 }
 
 function onMiss() {
@@ -273,18 +204,6 @@ function update(dt) {
   updateParticles(dt);
   for (const p of game.placed) if (p.squash) p.squash = Math.max(0, p.squash - dt * 4);
   for (const p of game.level.fixed || []) if (p.squash) p.squash = Math.max(0, p.squash - dt * 4);
-  const s = game.session;
-  if (s && !s.over && game.screen !== 'home') {
-    const midLevel = game.screen === 'level' && game.mode !== 'won';
-    const before = Math.ceil(s.timeLeft);
-    tickSession(s, dt, midLevel);
-    if (Math.ceil(s.timeLeft) !== before && Math.ceil(s.timeLeft) % 5 === 0) saveSession();
-    if (s.over) saveSession();
-  }
-  if (s && s.over && game.screen !== 'home' && !(game.screen === 'level' && game.mode === 'won' && game.wonT < 3)) {
-    showDone();
-    return;
-  }
   if (game.screen !== 'level') return;
   const bv = game.ballView;
   game.readyToGo = game.mode === 'edit' && game.placed.length >= game.level.solution.length;
@@ -413,12 +332,6 @@ function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * offX, dpr * offY);
-  if (game.screen === 'home') {
-    drawBackground(ctx, time, ext, THEMES[0]);
-    drawBucket(ctx, { x: 1680, y: 1040 }, 'near', time);
-    drawBall(ctx, 240, 900 - Math.abs(Math.sin(time * 3)) * 220, time * 3, 0, 200);
-    return;
-  }
   if (game.screen === 'select') {
     drawLevelSelect(ctx, game, time, ext);
     return;
@@ -498,11 +411,9 @@ function hitPlacedPiece(pt) {
 }
 
 function buttonAt(pt) {
-  if (game.screen === 'home') return null;
   if (game.screen === 'select') {
     const pages = Math.ceil(game.levelCount / UI.levelsPerPage);
     if (inCircle(pt, UI.music)) return 'music';
-    if (inCircle(pt, UI.back)) return 'back';
     if (game.page > 0 && inCircle(pt, UI.pagePrev)) return 'prev';
     if (game.page < pages - 1 && inCircle(pt, UI.pageNext)) return 'nextPage';
     for (let i = 0; i < UI.levelsPerPage; i++) {
@@ -511,7 +422,7 @@ function buttonAt(pt) {
     }
     return null;
   }
-  if (game.mode === 'won' && game.wonT > 1.3 && !game.session?.over) {
+  if (game.mode === 'won' && game.wonT > 1.3) {
     const last = game.levelIndex >= game.levelCount - 1;
     if (inCircle(pt, last ? { ...UI.replay, x: 800 } : UI.replay)) return 'replay';
     if (!last && inCircle(pt, UI.next)) return 'next';
@@ -530,10 +441,8 @@ function runButton(name) {
     sfx('tap');
   } else if (name === 'home') {
     sfx('tap');
+    game.page = Math.floor(game.levelIndex / UI.levelsPerPage);
     openSelect();
-  } else if (name === 'back') {
-    sfx('tap');
-    leaveSession();
   } else if (name === 'prev' || name === 'nextPage') {
     sfx('flip');
     game.page += name === 'prev' ? -1 : 1;
@@ -546,13 +455,8 @@ function runButton(name) {
     sfx('unlock');
     startLevel(game.levelIndex + 1);
   } else if (name.startsWith('level:')) {
-    const i = +name.slice(6);
-    if (i < game.progress.unlocked) {
-      sfx('tap');
-      startLevel(i);
-    } else {
-      sfx('stop');
-    }
+    sfx('tap');
+    startLevel(+name.slice(6));
   }
 }
 
@@ -701,17 +605,7 @@ function frame(now) {
 }
 
 resize();
-// Resume a session in progress (so a reload doesn't reset a grown-up's limit).
-const saved = load('bm-session', null);
-if (saved && saved.over) {
-  game.session = saved;
-  showDone();
-} else if (saved) {
-  game.session = saved;
-  openSelect();
-} else {
-  goHome();
-}
+game.page = firstUnfinishedPage();
 requestAnimationFrame(frame);
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

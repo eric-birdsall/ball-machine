@@ -22,7 +22,6 @@ export const UI = {
   next: { x: 1060, y: 660, r: 115 },
   levelBtn: (i) => ({ x: 155 + i * 330, y: 500, w: 290, h: 290 }),
   pagePrev: { x: 80, y: 645, r: 58 },
-  back: { x: 80, y: 80, r: 52 },
   pageNext: { x: 1840, y: 645, r: 58 },
   levelsPerPage: 5,
 };
@@ -891,7 +890,7 @@ export function drawWinOverlay(ctx, game, t, ext) {
     const y = 360 - (i === 1 ? 50 : 0) + Math.sin(t * 4 + i) * 10;
     drawStar(ctx, x, y, (i === 1 ? 95 : 75) * s * ease);
   }
-  if (game.wonT < 1.3 || game.session?.over) return;
+  if (game.wonT < 1.3) return;
   const last = game.levelIndex >= game.levelCount - 1;
   const btns = last ? [{ b: { ...UI.replay, x: 800 }, fill: C.fan, icon: replayIcon }]
     : [
@@ -947,11 +946,28 @@ export function drawLevelSelect(ctx, game, t, ext) {
   const page = game.page;
   drawBackground(ctx, t, ext, THEMES[page % THEMES.length]);
 
+  // title
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `900 118px ${FONT}`;
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 22;
+  ctx.strokeStyle = C.ink;
+  const ty = 230 + Math.sin(t * 2) * 6;
+  ctx.strokeText('Ball Machine', 820, ty);
+  const tg = ctx.createLinearGradient(0, ty - 60, 0, ty + 60);
+  tg.addColorStop(0, '#ffe36e');
+  tg.addColorStop(1, '#ff9f1c');
+  ctx.fillStyle = tg;
+  ctx.fillText('Ball Machine', 820, ty);
+  ctx.restore();
+
   // bouncing mascots
   drawBucket(ctx, { x: 1620, y: 420 }, 'near', t);
   drawBall(ctx, 1380, 280 - Math.abs(Math.sin(t * 3)) * 120, t * 3, 0, 200);
 
-  // world badge: big number + little row of world dots
+  // row of world dots
   const pages = Math.ceil(game.levelCount / UI.levelsPerPage);
   for (let k = 0; k < pages; k++) {
     circle(ctx, 960 + (k - (pages - 1) / 2) * 60, 960, k === page ? 18 : 12);
@@ -962,49 +978,42 @@ export function drawLevelSelect(ctx, game, t, ext) {
     const li = page * UI.levelsPerPage + i;
     if (li >= game.levelCount) break;
     const r = UI.levelBtn(i);
-    const locked = li >= game.progress.unlocked;
     const done = game.progress.done.includes(li);
-    const bob = locked ? 0 : Math.sin(t * 3 + i) * 6;
+    const bob = Math.sin(t * 3 + i) * 6;
     ctx.save();
     ctx.translate(0, bob);
     rr(ctx, r.x, r.y + 10, r.w, r.h, 44);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.fill();
     rr(ctx, r.x, r.y, r.w, r.h, 44);
-    fillStroke(ctx, locked ? '#cfd3e0' : ['#ffc93c', '#ff7eb0', '#6fd3ff', '#8be07a', '#c9a7ff'][i], C.ink, 8);
+    fillStroke(ctx, ['#ffc93c', '#ff7eb0', '#6fd3ff', '#8be07a', '#c9a7ff'][i], C.ink, 8);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (locked) {
-      padlock(ctx, r.x + r.w / 2, r.y + r.h / 2);
-    } else {
-      ctx.font = `900 120px ${FONT}`;
-      ctx.lineWidth = 16;
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = C.ink;
-      ctx.strokeText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 30);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 30);
-      // piece icons for this level
-      const types = [...new Set(game.levels[li].tray.map((s) => s.type))];
-      const sc = [0.5, 0.36, 0.27, 0.22][types.length - 1] ?? 0.2;
-      const gap = r.w / (types.length + 0.2);
-      types.forEach((type, k) => {
-        ctx.save();
-        ctx.translate(r.x + r.w / 2 + (k - (types.length - 1) / 2) * gap, r.y + r.h - 58);
-        ctx.scale(sc, sc);
-        drawPiece(ctx, { type, x: 0, y: 0, dir: 1 }, t, { icon: true });
-        ctx.restore();
-      });
-    }
+    ctx.font = `900 120px ${FONT}`;
+    ctx.lineWidth = 16;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = C.ink;
+    ctx.strokeText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 30);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(String(li + 1), r.x + r.w / 2, r.y + r.h / 2 - 30);
+    // piece icons for this level
+    const types = [...new Set(game.levels[li].tray.map((s) => s.type))];
+    const sc = [0.5, 0.36, 0.27, 0.22][types.length - 1] ?? 0.2;
+    const gap = r.w / (types.length + 0.2);
+    types.forEach((type, k) => {
+      ctx.save();
+      ctx.translate(r.x + r.w / 2 + (k - (types.length - 1) / 2) * gap, r.y + r.h - 58);
+      ctx.scale(sc, sc);
+      drawPiece(ctx, { type, x: 0, y: 0, dir: 1 }, t, { icon: true });
+      ctx.restore();
+    });
     if (done) drawStar(ctx, r.x + r.w - 20, r.y + 20, 40);
     ctx.restore();
   }
 
   if (page > 0) drawIconButton(ctx, UI.pagePrev, '#ffffff', (c) => arrowIcon(c, -1));
   if (page < pages - 1) drawIconButton(ctx, UI.pageNext, '#ffffff', (c) => arrowIcon(c, 1));
-  drawIconButton(ctx, UI.back, '#ffffff', (c) => houseIcon(c));
   drawIconButton(ctx, UI.music, game.musicOn ? '#ffffff' : '#d9d9e3', (c) => noteIcon(c, game.musicOn));
-  drawSessionHud(ctx, game, t);
 }
 
 function arrowIcon(ctx, d) {
@@ -1018,95 +1027,6 @@ function arrowIcon(ctx, d) {
   ctx.lineWidth = 8;
   ctx.strokeStyle = C.ink;
   ctx.stroke();
-  ctx.fill();
-}
-
-// Top-centre pill showing what's left of a Level Count or Time Count session.
-export function drawSessionHud(ctx, game, t) {
-  const s = game.session;
-  if (!s || s.mode === 'free') return;
-  const x = 800;
-  const y = 52;
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  if (s.mode === 'levels') {
-    const n = s.limit;
-    const doneCount = s.completed;
-    if (n <= 10) {
-      const w = n * 58 + 30;
-      rr(ctx, x - w / 2, y - 36, w, 72, 36);
-      fillStroke(ctx, 'rgba(255,255,255,0.9)', C.ink, 5);
-      for (let k = 0; k < n; k++) {
-        const cx = x + (k - (n - 1) / 2) * 58;
-        if (k < doneCount) drawStar(ctx, cx, y, 24, '#ffd23c', 4);
-        else {
-          circle(ctx, cx, y, 14);
-          fillStroke(ctx, '#e4e7f0', C.ink, 4);
-        }
-      }
-    } else {
-      rr(ctx, x - 130, y - 36, 260, 72, 36);
-      fillStroke(ctx, 'rgba(255,255,255,0.9)', C.ink, 5);
-      drawStar(ctx, x - 70, y, 26, '#ffd23c', 4);
-      ctx.font = `900 48px ${FONT}`;
-      ctx.fillStyle = C.ink;
-      ctx.fillText(`${doneCount}/${n}`, x + 30, y + 2);
-    }
-  } else if (s.mode === 'time') {
-    const left = Math.max(0, s.timeLeft);
-    const frac = left / s.limit;
-    const last = left <= 0;
-    const pulse = last ? 1 + 0.06 * Math.sin(t * 6) : 1;
-    ctx.translate(x, y);
-    ctx.scale(pulse, pulse);
-    rr(ctx, -140, -36, 280, 72, 36);
-    fillStroke(ctx, last ? '#ffe0b3' : 'rgba(255,255,255,0.9)', C.ink, 5);
-    // clock pie
-    circle(ctx, -90, 0, 24);
-    fillStroke(ctx, '#ffffff', C.ink, 4);
-    if (frac > 0) {
-      ctx.beginPath();
-      ctx.moveTo(-90, 0);
-      ctx.arc(-90, 0, 20, -Math.PI / 2, -Math.PI / 2 + frac * Math.PI * 2);
-      ctx.closePath();
-      ctx.fillStyle = frac < 0.2 ? '#ff9f1c' : '#34c759';
-      ctx.fill();
-    }
-    ctx.font = `900 46px ${FONT}`;
-    ctx.fillStyle = C.ink;
-    if (last) {
-      drawFlag(ctx, 30, 0);
-    } else {
-      const m = Math.floor(left / 60);
-      const sec = Math.floor(left % 60);
-      ctx.fillText(`${m}:${String(sec).padStart(2, '0')}`, 30, 2);
-    }
-  }
-  ctx.restore();
-}
-
-function drawFlag(ctx, x, y) {
-  ctx.fillStyle = C.ink;
-  ctx.fillRect(x - 24, y - 26, 6, 52);
-  ctx.beginPath();
-  ctx.moveTo(x - 18, y - 26);
-  ctx.lineTo(x + 30, y - 12);
-  ctx.lineTo(x - 18, y + 2);
-  ctx.closePath();
-  fillStroke(ctx, '#34c759', C.ink, 4);
-}
-
-function padlock(ctx, x, y) {
-  ctx.lineWidth = 16;
-  ctx.strokeStyle = C.ink;
-  ctx.beginPath();
-  ctx.arc(x, y - 20, 42, Math.PI, 0);
-  ctx.stroke();
-  rr(ctx, x - 64, y - 20, 128, 100, 18);
-  fillStroke(ctx, '#8b90a8', C.ink, 8);
-  circle(ctx, x, y + 22, 12);
-  ctx.fillStyle = C.ink;
   ctx.fill();
 }
 
@@ -1145,5 +1065,4 @@ export function drawLevel(ctx, game, t, ext) {
   drawBucket(ctx, L.bucket, game.bucketMood, t);
 
   drawParticles(ctx, game.particles);
-  drawSessionHud(ctx, game, t);
 }

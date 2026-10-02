@@ -5,24 +5,10 @@ Drag pieces from the tray, tap a piece to flip it, press the big green button,
 and help the ball into the bucket. The kids' screens have no text, so
 pre-readers can play.
 
-## For grown-ups: the main menu
-
-- **Level Count:** choose how many levels (1–25) your child can play. After
-  that many wins they see an "All done!" screen.
-- **Time Count:** choose a time limit (5–60 minutes). When time runs out
-  mid-level, they get to finish that level first. The clock only runs while the
-  game is open.
-- **Freeplay:** no limits. It's unlocked by answering a simple multiplication
-  question.
-
-Leaving an active Level/Time session (the house button on the level screen), or
-leaving the "All done!" screen, also asks the math question, so a limit can't
-simply be restarted. Sessions are saved on the device and survive a reload.
-
 ## What's in it
 
-- **25 levels in 5 worlds.** Each world has its own sky: day, meadow, sunset,
-  night, candy.
+- **25 levels in 5 worlds, all unlocked from the start.** Finished levels get a
+  star. Each world has its own sky: day, meadow, sunset, night, candy.
   1. Ramp, trampoline, conveyor, fan
   2. Funnel, bumper
   3. Slide, magnet
@@ -64,8 +50,6 @@ The tests run every level headlessly and check that:
 - every solution piece is needed
 - no piece overlaps the scenery
 
-They also cover the Level/Time/Freeplay session rules.
-
 ## Project layout
 
 | File | What it does |
@@ -73,8 +57,6 @@ They also cover the Level/Time/Freeplay session rules.
 | `js/levels.js` | Level data. Each level lists its `solution`, which drives snapping, hints and tests. Tray entries not in the solution are decoys. |
 | `js/physics.js` | Small one-ball physics sim, pure JS so it runs in Node. |
 | `js/pieces.js` | Piece sizes, collision shapes and trigger zones (wind, magnet, cannon, portal). |
-| `js/session.js` | Level Count / Time Count / Freeplay rules and the math question. |
-| `js/menu.js` | Grown-up screens (HTML over the canvas). |
 | `js/render.js` | All canvas drawing and the UI layout (1920×1080 logical space). |
 | `js/audio.js` | WebAudio sound effects and background music. |
 | `js/main.js` | Game states, touch input, tutorial and hints, and saved progress. |
